@@ -1,0 +1,61 @@
+.idle,
+.loading,
+.empty,
+.error,
+.success {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.loading {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #d1d5db;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  flex-direction: row;
+  align-items: flex-start;
+  color: #b91c1c;
+}
+
+.error p {
+  margin: 0;
+}
+
+.count {
+  font-size: 18px;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+}
