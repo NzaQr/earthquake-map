@@ -12,10 +12,10 @@ export function useEarthquakes() {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      setStatus({ kind: "loading" });
-
       try {
-        const data = await fetchEarthquakes(filters, controller.signal);
+        const data = await fetchEarthquakes(filters, controller.signal, () =>
+          setStatus({ kind: "loading" }),
+        );
 
         const result: FetchStatus =
           data.features.length === 0
@@ -47,7 +47,7 @@ export function useEarthquakes() {
         return result;
       }
     },
-    []
+    [],
   );
 
   return { status, query };

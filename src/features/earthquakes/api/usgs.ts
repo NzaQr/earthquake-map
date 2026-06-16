@@ -1,3 +1,4 @@
+import { readEntry, ttlFor, writeEntry } from "./cache";
 import type { EarthquakeCollection, EarthquakeFilters } from "./types";
 
 const BASE_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query";
@@ -12,18 +13,43 @@ function localDayEnd(dateStr: string): string {
   return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
 }
 
-export async function fetchEarthquakes(
-  filters: EarthquakeFilters,
-  signal?: AbortSignal
-): Promise<EarthquakeCollection> {
-  const params = new URLSearchParams({
-    format: "geojson",
+function normalize(filters: EarthquakeFilters) {
+  return {
     starttime: localDayStart(filters.starttime),
     endtime: localDayEnd(filters.endtime),
     minmagnitude: String(filters.minmagnitude),
+  };
+}
+
+function cacheKey(n: ReturnType<typeof normalize>): string {
+  return `${n.starttime}|${n.endtime}|${n.minmagnitude}`;
+}
+
+export async function fetchEarthquakes(
+  filters: EarthquakeFilters,
+  signal?: AbortSignal,
+  onNetwork?: () => void,
+): Promise<EarthquakeCollection> {
+  const normalized = normalize(filters);
+
+  const cached = await readEntry(cacheKey(normalized), ttlFor(filters.endtime));
+  if (cached) return cached.data;
+
+  onNetwork?.();
+  const data = await fetchFromNetwork(normalized, signal);
+  writeEntry(cacheKey(normalized), { data, fetchedAt: Date.now() });
+  return data;
+}
+
+async function fetchFromNetwork(
+  normalized: ReturnType<typeof normalize>,
+  signal?: AbortSignal,
+): Promise<EarthquakeCollection> {
+  const params = new URLSearchParams({
+    format: "geojson",
+    ...normalized,
     orderby: "time",
   });
-
   const response = await fetch(`${BASE_URL}?${params}`, { signal });
 
   if (!response.ok) {
@@ -40,7 +66,9 @@ export async function fetchEarthquakes(
       }
       throw new Error(`Bad request: ${text}`);
     }
-    throw new Error(`USGS API error: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `USGS API error: ${response.status} ${response.statusText}`,
+    );
   }
 
   const data: EarthquakeCollection = await response.json();
